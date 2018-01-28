@@ -4,14 +4,15 @@ var audioLibrary = {
 	'beep' : 'beep.mp3'
 }
 
-var AudioState = function(audioLibrary) {
+var AudioState = function(audioLibrary, basePath) {
 	this.currentlyPlaying = [];
 	this.audioLibrary = audioLibrary;
+	this.basePath = (!!basePath ? basePath : '.');
 }
 
 AudioState.prototype.startPlaying = function(soundName, interrupting) {
-	if(this.audioLibrary[soundName ]) {
-		var audio = new Audio(this.audioLibrary[soundName]);
+	if(this.audioLibrary[soundName]) {
+		var audio = new Audio([this.basePath, this.audioLibrary[soundName]].join('/'));
 		console.log('Adding ' + audio.toString());
 		if(interrupting) {
 			for(i in this.currentlyPlaying) {
@@ -29,11 +30,13 @@ AudioState.prototype.startPlaying = function(soundName, interrupting) {
 }
 
 Audio.prototype.toString = function() {
-	return [this.src, this.currentTime].join('/');
+	return [this.src, this.currentTime].join('@');
 }
 
-var playBeep = function() {
-	//var audio = new Audio('beep.ogg');
-	var audio = new Audio('hwg.mp3');
-	audio.play();
+var RandomAudio = function(fileList) {
+	this.fileList = fileList;
+}
+
+RandomAudio.prototype.toString = function() {
+	return this.fileList[Math.floor(Math.random() * (this.fileList.length))];
 }

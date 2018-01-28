@@ -119,12 +119,17 @@ var displayGame = function() {
 
 	var audioLibrary = {
 		'engineStart' : 'vroomvroom.mp3',
-		'errrk' : 'errrk.mp3',
+		'errrk' : new RandomAudio(['errrk.mp3', 'vlabrakesqueal1.mp3', 'vlabrakesqueal2.mp3', 'vlabrakesqueal3.mp3']),
 		'crash' : 'crash.mp3',
-		'juke' : 'jukebox.mp3'
+		'juke' : 'jukebox.mp3',
+		'intro' : 'whydidithinkiwasahuman.mp3',
+		'intro2' : 'whateverimacarnow.mp3',
+		'squirrel' : 'onosqrl.mp3',
+		'late' : 'runninglate.mp3',
+		'yellow' : 'yellowmeansgo.mp3'
 	}
 
-	var as = new AudioState (audioLibrary);
+	var as = new AudioState (audioLibrary, './audio');
 
 	var keyMap = {
 		'ArrowDown': function(event) {
