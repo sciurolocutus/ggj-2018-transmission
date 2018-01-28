@@ -26,11 +26,20 @@ AudioState.prototype.startPlaying = function(soundName, interrupting) {
 			this.currentlyPlaying.push(audio);
 		}
 		audio.play();
+		return audio;
 	}
 }
 
 Audio.prototype.toString = function() {
 	return [this.src, this.currentTime].join('@');
+}
+
+Audio.prototype.isPlaying = function() {
+    return this
+        && this.currentTime > 0
+        && !this.paused
+        && !this.ended
+        && this.readyState > 2;
 }
 
 var RandomAudio = function(fileList) {
@@ -39,4 +48,17 @@ var RandomAudio = function(fileList) {
 
 RandomAudio.prototype.toString = function() {
 	return this.fileList[Math.floor(Math.random() * (this.fileList.length))];
+}
+
+var SequencedAudio = function(fileList) {
+	this.i = 0;
+	this.fileList = fileList;
+}
+
+SequencedAudio.prototype.toString = function() {
+	if(this.fileList.length > this.i) {
+		return this.fileList[this.i++];
+	} else {
+		return '';
+	}
 }

@@ -1,8 +1,11 @@
-Have the human body step on the gas or brakes
-Track speed / acceleration
+Have the human body step on the gas or brakes [you could say that we do this]
+Track speed / acceleration [kind of there]
 Generate obstacles
-Show movement
+Show movement [could be better]
 
 Use requestAnimationFrame to determine optimal playback speed [x]
 
-Add audio and make it behave properly
+Add audio and make it behave properly [close enough for now]
+
+Display the current transmission state (what gear are you in, how hot are you)
+Display the spedometer.

@@ -55,11 +55,86 @@ var drawCarBody = function(x, y, scale, ctx) {
 	ctx.closePath();
 }
 
+var Engine = function() {
+	this.stateIndex = 1;
+	this.heat = 0;
+}
+
+Engine.states = ['R', 'N', 1, 2, 3, 4, 5];
+Engine.speedRanges = {
+	'R' : {'lo': -10, 'hi': 0},
+	'N' : {'lo': -100, 'hi': 4000},
+	1 : {'lo': 1, 'hi': 10},
+	2 : {'lo': 10, 'hi': 20},
+	3 : {'lo': 15, 'hi': 35},
+	4 : {'lo': 30, 'hi': 45},
+	5 : {'lo': 40, 'hi': 75}
+};
+
+Engine.prototype.clampSpeed = function(s) {
+	var speedRange = Engine.speedRanges[this.getState()];
+	if(s < speedRange['lo']) {
+		this.heat += 5;
+		return speedRange['lo'];
+	} else if(s > speedRange['hi']) {
+		this.head += 1;
+		return speedRange['hi'];
+	} else {
+		return s;
+	}
+}
+
+Engine.prototype.checkSpeed = function(s) {
+	var speedRange = Engine.speedRanges[this.getState()];
+	if(s < speedRange['lo']) {
+		return 'tooLo';
+	} else if(s > speedRange['hi']) {
+		return 'tooHi';
+	} else {
+		return 'ok';
+	}
+}
+
+Engine.prototype.getState = function() {
+	return Engine.states[this.stateIndex];
+}
+
+Engine.prototype.shiftUp = function() {
+	if(this.stateIndex < Engine.states.length - 1) {
+		this.stateIndex++;
+	}
+}
+
+Engine.prototype.shiftDown = function() {
+	if(this.stateIndex > 0) {
+		this.stateIndex--;
+	}
+}
+
+Engine.prototype.neutral = function() {
+	this.stateIndex = 1;
+}
+
 var Car = function (x, y, theta, scale) {
 	this.wheelTheta = theta;
 	this.x = x;
 	this.y = y;
 	this.scale = scale;
+	this.speed = 0;
+	this.acceleration = 0;
+	this.engine = new Engine();
+}
+
+Car.prototype.modSpeed = function(ds) {
+	this.speed += ds;
+}
+
+Car.prototype.tickSpeed = function() {
+	this.speed += this.acceleration;
+}
+
+Car.prototype.modAcceleration = function(da) {
+	this.acceleration += da;
 }
 
 Car.prototype.setTheta = function(theta) {
@@ -72,6 +147,49 @@ Car.prototype.draw = function(ctx) {
 	drawWheel(this.x+5*this.scale, this.y, this.scale, this.wheelTheta, ctx);
 }
 
+var Spedometer = function(scale) {
+	this.scale = scale; // 1 "speed" = how many "mph/kph"?
+}
+
+Spedometer.draw = function(speed, ctx) {
+	//TODO: draw at least an arm pointed to the appropriate place on a number arc
+}
+
+function animateTheScene(car, street, i, maxIt, animSpeed, ctx) {
+	var streetTheta = -(animSpeed * i / maxIt * street.xscale);
+	street.shiftX(streetTheta);
+	//console.log('Drawing that street at i=' + i + '; x=' + street.x);
+	street.draw(ctx);
+
+	var carTheta = animSpeed * i * Math.PI * 2 / maxIt;
+	car.setTheta(carTheta);
+	car.draw(ctx);
+
+
+	if(Math.random() > 0.3) {
+		car.acceleration++;
+		car.speed = car.engine.clampSpeed(car.speed);
+	}
+	car.tickSpeed();
+	//animSpeed = car.speed;
+
+	if(i<maxIt) {
+		i++;
+	} else {
+		//street.x = street.x % street.scale;
+		console.log(street.x);
+		//street.shiftX(street.scale * maxIt);
+		street.x = 0;
+		i=0;
+	}
+	if(!gameEnded) {
+		requestAnimFrame(function() { animateTheScene(car, street, i, maxIt, animSpeed, ctx); });
+	} else {
+		drawGameEnd(ctx);
+	}
+}
+
+
 function animateTheCar(car, i, maxIt, animSpeed, ctx) {
 	//console.log('Drawing that car at i=' + i);
 	var theta = animSpeed * i * Math.PI * 2 / maxIt;
@@ -82,9 +200,27 @@ function animateTheCar(car, i, maxIt, animSpeed, ctx) {
 	} else {
 		i=0;
 	}
-		requestAnimFrame(function() { animateTheCar(car, i+1, maxIt, animSpeed, ctx); });
-		//setTimeout(function() { /* ctx.clearRect(0, 0, canvas.width, canvas.height); */ animateTheCar(car, i+1, maxIt, ms, animSpeed, ctx); }, ms);
-	//}
+	requestAnimFrame(function() { animateTheCar(car, i, maxIt, animSpeed, ctx); });
+}
+
+function animateTheStreet(street, i, maxIt, animSpeed, ctx) {
+	var theta = -(animSpeed * i / maxIt * street.xscale);
+	street.shiftX(theta);
+	console.log('Drawing that street at i=' + i + '; x=' + street.x);
+	if(i < maxIt) {
+		i++;
+	} else {
+		i = 0;
+	}
+	if(!gameEnded) {
+		requestAnimFrame(function() { animateTheStreet(street, i, maxIt, animSpeed, ctx); });
+	} else {
+		drawGameEnd(ctx);
+	}
+}
+
+function drawGameEnd(ctx) {
+	//well, it'll happen sometime.
 }
 
 var requestAnimFrame = (function(callback) {
@@ -93,6 +229,23 @@ var requestAnimFrame = (function(callback) {
 			window.setTimeout(callback, 1000 / 60);
 		}
 })();
+
+
+var audioLibrary = {
+	'engineStart' : 'vroomvroom.mp3',
+	'errrk' : new RandomAudio(['vlabrakesqueal1.mp3', 'vlabrakesqueal2.mp3', 'vlabrakesqueal3.mp3']),
+	'crash' : 'crash.mp3',
+	'juke' : 'jukebox.mp3',
+	'squirrel' : 'onosqrl.mp3',
+	'late' : 'runninglate.mp3',
+	'yellow' : 'yellowmeansgo.mp3',
+	'intro' : new SequencedAudio(['minorphrase1.mp3', 'whydidithinkiwasahuman.mp3', 'abruptarpeggiation1.mp3', 'whateverimacarnow.mp3', 'violaenginestart.mp3', 'whydidithinkiwasahuman.mp3', 'runninglate.mp3']),
+	'intro' : new SequencedAudio(['violaenginestart.mp3']) //short version
+}
+
+var gameEnded = false;
+
+var as = new AudioState (audioLibrary, './audio');
 
 var displayGame = function() {
 	var canvas = document.getElementById("theCanvas");
@@ -112,34 +265,64 @@ var displayGame = function() {
 
 
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
-	var maxIters = 10;
 
-	var car = new Car(w / 20, h / 5, theta, w / 20);
-	animateTheCar(car, 0, maxIters, 1, ctx);
 
-	var audioLibrary = {
-		'engineStart' : 'vroomvroom.mp3',
-		'errrk' : new RandomAudio(['errrk.mp3', 'vlabrakesqueal1.mp3', 'vlabrakesqueal2.mp3', 'vlabrakesqueal3.mp3']),
-		'crash' : 'crash.mp3',
-		'juke' : 'jukebox.mp3',
-		'intro' : 'whydidithinkiwasahuman.mp3',
-		'intro2' : 'whateverimacarnow.mp3',
-		'squirrel' : 'onosqrl.mp3',
-		'late' : 'runninglate.mp3',
-		'yellow' : 'yellowmeansgo.mp3'
+	//draw the street
+	var street = new Street(0, 0, w / 12, (h / 4), 4);
+	street.draw(ctx);
+	
+	var maxIters = 40;
+
+	//draw the car -- don't start animation yet
+	var car = new Car(w / 20, h / 4, theta, w / 20);
+	car.setTheta(0);
+	car.draw(ctx);
+
+	var beginAnimation = function() {
+		animateTheScene(car, street, 0, maxIters, 1, ctx);
 	}
 
-	var as = new AudioState (audioLibrary, './audio');
+	var waitForCompletion = function(aud) {
+		if(aud.isPlaying()) {
+			console.log('waiting for ' + aud.toString());
+			setTimeout(function() {
+					waitForIntro();
+					}, 1000);
+		}
+	}
+
+
+	var waitForAll = function(i, finalDelegate) {
+		if(i >= audioLibrary['intro'].fileList.length) {
+			return finalDelegate();
+		}
+		var curr = as.startPlaying('intro');
+		console.log('playing: ' + curr.toString());
+		curr.addEventListener('ended',function() {
+				console.log(curr + ' ended');
+				waitForAll(i+1, finalDelegate);
+				});
+	}
+	waitForAll(0, beginAnimation);
 
 	var keyMap = {
 		'ArrowDown': function(event) {
 			as.startPlaying('errrk', true);
+			car.engine.shiftDown();
 		},
 		'ArrowUp': function(event) {
 			as.startPlaying('engineStart', false);
+			car.engine.shiftUp();
+		},
+		'ArrowRight': function(event) {
+			as.startPlaying('yellow', false);
+		},
+		'ArrowLeft': function(event) {
+			as.startPlaying('squirrel', false);
 		},
 		'Escape': function(event) {
 			as.startPlaying('crash', true);
+			gameEnded = true;
 		},
 		'Shift': function(event) {
 			console.log(JSON.stringify(event));
@@ -165,7 +348,6 @@ var KeyListener = function(doc, keyMap) {
 		}
 	});
 }
-
 
 var gameState = function() {
 	this.playerLocation = 0;
