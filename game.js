@@ -118,9 +118,9 @@ var displayGame = function() {
 	animateTheCar(car, 0, maxIters, 1, ctx);
 
 	var audioLibrary = {
-		'engineStart' : 'car_start.mp3',
+		'engineStart' : 'vroomvroom.mp3',
 		'errrk' : 'errrk.mp3',
-		'beep' : 'beep.mp3',
+		'crash' : 'crash.mp3',
 		'juke' : 'jukebox.mp3'
 	}
 
@@ -133,7 +133,11 @@ var displayGame = function() {
 		'ArrowUp': function(event) {
 			as.startPlaying('engineStart', false);
 		},
-		'Tab': function(event) {
+		'Escape': function(event) {
+			as.startPlaying('crash', true);
+		},
+		'Shift': function(event) {
+			console.log(JSON.stringify(event));
 			as.startPlaying('juke', false);
 		}
 	};
@@ -161,6 +165,7 @@ var KeyListener = function(doc, keyMap) {
 var gameState = function() {
 	this.playerLocation = 0;
 	this.playerSpeed = 0;
+	this.crashed = false;
 }
 
 //TODO: generate obstacles sometimes
