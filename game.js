@@ -48,7 +48,7 @@ var drawLineAtAngle = function(x, y, r, theta, ctx)  {
 var drawCarBody = function(x, y, scale, ctx) {
 	ctx.beginPath();
 	ctx.rect(x,y,scale*3,scale);
-	ctx.fillStyle = "#FF0000";
+	ctx.fillStyle = "pink";
 	ctx.fill();
 	ctx.arc(x+scale*1.5, y, scale, Math.PI, Math.PI * 2.0, false);
 	ctx.fill();
@@ -123,6 +123,7 @@ var Car = function (x, y, theta, scale) {
 	this.speed = 0;
 	this.acceleration = 0;
 	this.engine = new Engine();
+	this.policeLight = new PoliceLight(40, ['#FF0000', '#0000FF']);
 }
 
 Car.prototype.modSpeed = function(ds) {
@@ -145,6 +146,47 @@ Car.prototype.draw = function(ctx) {
 	drawCarBody(this.x+this.scale*1.5, this.y - this.scale, this.scale, ctx);
 	drawWheel(this.x+this.scale, this.y, this.scale, this.wheelTheta, ctx);
 	drawWheel(this.x+5*this.scale, this.y, this.scale, this.wheelTheta, ctx);
+	if(!!this.policeMode) {
+		this.policeLight.draw(this.x + this.scale * 3, this.y - this.scale * 2, this.scale / 4, t, ctx);
+	}
+}
+
+var CirclingArray = function(arr) {
+	this.arr = arr;
+}
+
+CirclingArray.prototype.get = function(i) {
+	if(i >= this.arr.length) {
+		return this.arr[i % this.arr.length];
+	} else {
+		return this.arr[i];
+	}
+}
+
+var PoliceLight = function(phaseLength, colors) {
+	this.phaseLength = phaseLength;
+	if(colors instanceof CirclingArray) {
+		this.colors = colors;
+	} else {
+		this.colors = new CirclingArray(colors);
+	}
+	this.currentColor = this.colors.get(0);
+}
+
+PoliceLight.prototype.updateColor = function(theta) {
+	this.currentColor = this.colors.get(Math.floor(theta / this.phaseLength));
+	//console.log('phase: ' + theta + ', phaseLength = ' + this.phaseLength + ', result: ' + (theta / this.phaseLength));
+	//console.log('Current color: ' + this.currentColor);
+}
+
+PoliceLight.prototype.draw = function(x, y, scale, theta, ctx) {
+	this.updateColor(theta);
+
+	ctx.beginPath();
+	ctx.rect(x,y,scale * 1.5,scale);
+	ctx.fillStyle = this.currentColor;
+	ctx.fill();
+	ctx.closePath();
 }
 
 var Spedometer = function(scale) {
@@ -154,6 +196,8 @@ var Spedometer = function(scale) {
 Spedometer.draw = function(speed, ctx) {
 	//TODO: draw at least an arm pointed to the appropriate place on a number arc
 }
+
+var t = 0;
 
 function animateTheScene(car, street, i, maxIt, animSpeed, ctx) {
 	var streetTheta = -(animSpeed * i / maxIt * street.xscale);
@@ -177,11 +221,14 @@ function animateTheScene(car, street, i, maxIt, animSpeed, ctx) {
 		i++;
 	} else {
 		//street.x = street.x % street.scale;
-		console.log(street.x);
+		//console.log(street.x);
 		//street.shiftX(street.scale * maxIt);
 		street.x = 0;
 		i=0;
 	}
+
+	t++;
+
 	if(!gameEnded) {
 		requestAnimFrame(function() { animateTheScene(car, street, i, maxIt, animSpeed, ctx); });
 	} else {
@@ -206,7 +253,7 @@ function animateTheCar(car, i, maxIt, animSpeed, ctx) {
 function animateTheStreet(street, i, maxIt, animSpeed, ctx) {
 	var theta = -(animSpeed * i / maxIt * street.xscale);
 	street.shiftX(theta);
-	console.log('Drawing that street at i=' + i + '; x=' + street.x);
+	//console.log('Drawing that street at i=' + i + '; x=' + street.x);
 	if(i < maxIt) {
 		i++;
 	} else {
@@ -235,12 +282,12 @@ var audioLibrary = {
 	'engineStart' : 'vroomvroom.mp3',
 	'errrk' : new RandomAudio(['vlabrakesqueal1.mp3', 'vlabrakesqueal2.mp3', 'vlabrakesqueal3.mp3']),
 	'crash' : 'crash.mp3',
-	'juke' : 'jukebox.mp3',
+	'juke' : 'Adventure.mp3',
 	'squirrel' : 'onosqrl.mp3',
 	'late' : 'runninglate.mp3',
 	'yellow' : 'yellowmeansgo.mp3',
-	'intro' : new SequencedAudio(['minorphrase1.mp3', 'whydidithinkiwasahuman.mp3', 'abruptarpeggiation1.mp3', 'whateverimacarnow.mp3', 'violaenginestart.mp3', 'whydidithinkiwasahuman.mp3', 'runninglate.mp3']),
-	'intro' : new SequencedAudio(['violaenginestart.mp3']) //short version
+	'intro' : new SequencedAudio(['minorphrase1.mp3', 'whydidithinkiwasahuman.mp3', 'abruptarpeggiation1.mp3', 'whateverimacarnow.mp3', 'violaenginestart.mp3', 'runninglate.mp3']),
+	'blah' : new SequencedAudio(['violaenginestart.mp3']) //short version
 }
 
 var gameEnded = false;
@@ -325,8 +372,15 @@ var displayGame = function() {
 			gameEnded = true;
 		},
 		'Shift': function(event) {
-			console.log(JSON.stringify(event));
+			//console.log(JSON.stringify(event));
 			as.startPlaying('juke', false);
+		},
+		'p': function(event) {
+			car.policeMode = !!!car.policeMode; //toggle police mode
+		},
+		'r': function(event) {
+			gameEnded = false;
+			beginAnimation();
 		}
 	};
 
@@ -342,7 +396,7 @@ var KeyListener = function(doc, keyMap) {
 	this.keyMap = keyMap;
 	document.addEventListener('keydown', function(event) {
 		var k = event.key;
-		console.log('key down: ' + k);
+		//console.log('key down: ' + k);
 		if(keyMap[k]) {
 			keyMap[k](event);
 		}
