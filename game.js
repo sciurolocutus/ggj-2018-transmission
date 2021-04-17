@@ -1,3 +1,11 @@
+var CyclicalObject = function(phaseLength) {
+	this.phaseLength = phaseLength;
+}
+
+CyclicalObject.prototype.atTheta = function(theta) {
+	return (theta % this.phaseLength) / this.phaseLength;
+}
+
 var drawSquare = function(x,y,w,ctx) {
 	ctx.beginPath();
 	ctx.rect(x,y,w,w);
@@ -147,7 +155,7 @@ Car.prototype.draw = function(ctx) {
 	drawWheel(this.x+this.scale, this.y, this.scale, this.wheelTheta, ctx);
 	drawWheel(this.x+5*this.scale, this.y, this.scale, this.wheelTheta, ctx);
 	if(!!this.policeMode) {
-		this.policeLight.draw(this.x + this.scale * 3, this.y - this.scale * 2, this.scale / 4, t, ctx);
+		this.policeLight.draw(this.x + this.scale * 2.75, this.y - this.scale * 2, this.scale / 4, t, ctx);
 	}
 }
 
@@ -174,13 +182,22 @@ var PoliceLight = function(phaseLength, colors) {
 }
 
 PoliceLight.prototype.updateColor = function(theta) {
-	this.currentColor = this.colors.get(Math.floor(theta / this.phaseLength));
+	var i = Math.floor(theta / this.phaseLength);
+	this.currentColor = this.colors.get(i);
 	//console.log('phase: ' + theta + ', phaseLength = ' + this.phaseLength + ', result: ' + (theta / this.phaseLength));
 	//console.log('Current color: ' + this.currentColor);
 }
 
 PoliceLight.prototype.draw = function(x, y, scale, theta, ctx) {
-	this.updateColor(theta);
+	var i = Math.floor(theta / this.phaseLength);
+	var currentColor = this.colors.get(i);
+	var nextColor = this.colors.get(i+1);
+
+	var grd = ctx.createLinearGradient(x, 0, x + scale * 1.5, 0);
+	grd.addColorStop(0, currentColor);
+	grd.addColorStop(1, nextColor);
+
+	this.currentColor = grd;
 
 	ctx.beginPath();
 	ctx.rect(x,y,scale * 1.5,scale);
@@ -221,9 +238,13 @@ function animateTheScene(car, street, i, maxIt, animSpeed, ctx) {
 		i++;
 	} else {
 		//street.x = street.x % street.scale;
-		//console.log(street.x);
+		console.log(street.x);
 		//street.shiftX(street.scale * maxIt);
-		street.x = 0;
+		street.x += animSpeed * street.xscale * maxIt / 2;
+		console.log(animSpeed * street.xscale * maxIt / 2);
+		//console.log(streetTheta * maxIt);
+		console.log(street.xscale);
+		console.log(street.x);
 		i=0;
 	}
 
@@ -286,13 +307,15 @@ var audioLibrary = {
 	'squirrel' : 'onosqrl.mp3',
 	'late' : 'runninglate.mp3',
 	'yellow' : 'yellowmeansgo.mp3',
+	'weewoo' : 'weewoo.mp3',
 	'intro' : new SequencedAudio(['minorphrase1.mp3', 'whydidithinkiwasahuman.mp3', 'abruptarpeggiation1.mp3', 'whateverimacarnow.mp3', 'violaenginestart.mp3', 'runninglate.mp3']),
 	'blah' : new SequencedAudio(['violaenginestart.mp3']) //short version
 }
 
 var gameEnded = false;
 
-var as = new AudioState (audioLibrary, './audio');
+var paulStretchMode = true;
+var as = new AudioState (audioLibrary, './audio/paulstretch');
 
 var displayGame = function() {
 	var canvas = document.getElementById("theCanvas");
@@ -377,10 +400,21 @@ var displayGame = function() {
 		},
 		'p': function(event) {
 			car.policeMode = !!!car.policeMode; //toggle police mode
+			if(car.policeMode) {
+				as.startPlaying('weewoo', false);
+			}
 		},
 		'r': function(event) {
 			gameEnded = false;
 			beginAnimation();
+		},
+		's': function(event) {
+			paulStretchMode = !!!paulStretchMode;
+			if(paulStretchMode) {
+				as.basePath = './audio/paulstretch';
+			} else {
+				as.basePath = './audio';
+			}
 		}
 	};
 

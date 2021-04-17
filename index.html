@@ -8,9 +8,11 @@
 	canvas {background: #eee; display: block; margin: 0 auto; width: 90%; height: 30% }
 </style>
 
-<script src="street.js"></script>
-<script src="audio.js"></script>
-<script src="game.js"></script>
+<script type="text/javascript" src="street.js"></script>
+<script type="text/javascript" src="audio.js"></script>
+<script type="text/javascript" src="game.js"></script>
+
+<script type="text/javascript" >window.onload = function() { displayGame(); }</script>
 
 </head>
 <body>
@@ -28,7 +30,6 @@
 </p>
 
 <canvas id="theCanvas" width="800" height="300"></canvas>
-<script>displayGame();</script>
 
 </body>
 </html>
